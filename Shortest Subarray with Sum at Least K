@@ -1,0 +1,38 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MIN_VAL(a, b) ((a) < (b) ? (a) : (b))
+
+int shortestSubarray(int* nums, int numsSize, int k) {
+    int n = numsSize;
+    
+    long long* prefix_sums = (long long*)malloc((n + 1) * sizeof(long long));
+    prefix_sums[0] = 0;
+    for (int i = 0; i < n; i++) {
+        prefix_sums[i + 1] = prefix_sums[i] + nums[i];
+    }
+    
+    int* dq = (int*)malloc((n + 1) * sizeof(int));
+    int head = 0;
+    int tail = 0;
+    
+    int min_length = n + 1; 
+    
+    for (int i = 0; i <= n; i++) {
+        while (tail > head && prefix_sums[i] - prefix_sums[dq[head]] >= k) {
+            min_length = MIN_VAL(min_length, i - dq[head]);
+            head++; 
+        }
+        
+        while (tail > head && prefix_sums[i] <= prefix_sums[dq[tail - 1]]) {
+            tail--; 
+        }
+        
+        dq[tail++] = i;
+    }
+    
+    free(prefix_sums);
+    free(dq);
+    
+    return (min_length <= n) ? min_length : -1;
+}
