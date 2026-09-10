@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+
+void inorder(struct TreeNode* root, struct TreeNode** tail) {
+    if (root == NULL) {
+        return;
+    }
+    
+    inorder(root->left, tail);
+    
+    root->left = NULL;
+    
+    (*tail)->right = root;
+    
+    *tail = root;
+    
+    inorder(root->right, tail);
+}
+
+struct TreeNode* increasingBST(struct TreeNode* root) {
+    struct TreeNode dummy;
+    dummy.val = 0;
+    dummy.left = NULL;
+    dummy.right = NULL;
+    
+    struct TreeNode* tail = &dummy;
+    
+    inorder(root, &tail);
+    
+    tail->right = NULL;
+    
+    return dummy.right;
+}
