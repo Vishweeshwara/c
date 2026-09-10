@@ -1,0 +1,59 @@
+#include <stdlib.h>
+
+// Definition for a Hash Map node to handle collisions
+struct HashNode {
+    int key;
+    int value;
+    struct HashNode* next;
+};
+
+// Main function to solve Two Sum in O(n) time
+int* twoSum(int* nums, int numsSize, int target, int* returnSize) {
+    *returnSize = 2;
+    int* result = (int*)malloc(2 * sizeof(int));
+    
+    // Create a hash table with a prime size to minimize collisions
+    int hashTableSize = 20011; 
+    struct HashNode** hashTable = (struct HashNode**)calloc(hashTableSize, sizeof(struct HashNode*));
+    
+    for (int i = 0; i < numsSize; i++) {
+        int complement = target - nums[i];
+        
+        // Hash function handling negative numbers properly
+        int hashIndex = abs(complement) % hashTableSize;
+        
+        // Search for the complement in the hash table
+        struct HashNode* curr = hashTable[hashIndex];
+        while (curr != NULL) {
+            if (curr->key == complement) {
+                result[0] = curr->value;
+                result[1] = i;
+                
+                // Free allocated memory for hash table before returning
+                for (int j = 0; j < hashTableSize; j++) {
+                    struct HashNode* tmp = hashTable[j];
+                    while (tmp != NULL) {
+                        struct HashNode* toDelete = tmp;
+                        tmp = tmp->next;
+                        free(toDelete);
+                    }
+                }
+                free(hashTable);
+                return result;
+            }
+            curr = curr->next;
+        }
+        
+        // Complement not found, insert current number and its index into the hash table
+        int currentHashIndex = abs(nums[i]) % hashTableSize;
+        struct HashNode* newNode = (struct HashNode*)malloc(sizeof(struct HashNode));
+        newNode->key = nums[i];
+        newNode->value = i;
+        newNode->next = hashTable[currentHashIndex];
+        hashTable[currentHashIndex] = newNode;
+    }
+    
+    // Free table if no solution is found (though the problem guarantees exactly one solution)
+    free(hashTable);
+    return result;
+}
