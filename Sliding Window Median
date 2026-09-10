@@ -1,0 +1,181 @@
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+
+typedef struct {
+    int key;
+    int count;
+    bool is_occupied;
+} HashEntry;
+
+#define HASH_SIZE 200003
+
+int getHash(int key) {
+    int hash = key % HASH_SIZE;
+    if (hash < 0) hash += HASH_SIZE;
+    return hash;
+}
+
+void hashInsert(HashEntry* table, int key) {
+    int idx = getHash(key);
+    while (table[idx].is_occupied) {
+        if (table[idx].key == key) {
+            table[idx].count++;
+            return;
+        }
+        idx = (idx + 1) % HASH_SIZE;
+    }
+    table[idx].key = key;
+    table[idx].count = 1;
+    table[idx].is_occupied = true;
+}
+
+int hashGetCount(HashEntry* table, int key) {
+    int idx = getHash(key);
+    while (table[idx].is_occupied) {
+        if (table[idx].key == key) return table[idx].count;
+        idx = (idx + 1) % HASH_SIZE;
+    }
+    return 0;
+}
+
+void hashDecrement(HashEntry* table, int key) {
+    int idx = getHash(key);
+    while (table[idx].is_occupied) {
+        if (table[idx].key == key) {
+            table[idx].count--;
+            return;
+        }
+        idx = (idx + 1) % HASH_SIZE;
+    }
+}
+
+int* maxHeap;
+int maxHeapSize;
+int* minHeap;
+int minHeapSize;
+
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void pushMaxHeap(int val) {
+    maxHeap[maxHeapSize] = val;
+    int i = maxHeapSize++;
+    while (i > 0 && maxHeap[(i - 1) / 2] < maxHeap[i]) {
+        swap(&maxHeap[(i - 1) / 2], &maxHeap[i]);
+        i = (i - 1) / 2;
+    }
+}
+
+void popMaxHeap() {
+    maxHeap[0] = maxHeap[--maxHeapSize];
+    int i = 0;
+    while (2 * i + 1 < maxHeapSize) {
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
+        int largest = left;
+        if (right < maxHeapSize && maxHeap[right] > maxHeap[left]) largest = right;
+        if (maxHeap[i] >= maxHeap[largest]) break;
+        swap(&maxHeap[i], &maxHeap[largest]);
+        i = largest;
+    }
+}
+
+void pushMinHeap(int val) {
+    minHeap[minHeapSize] = val;
+    int i = minHeapSize++;
+    while (i > 0 && minHeap[(i - 1) / 2] > minHeap[i]) {
+        swap(&minHeap[(i - 1) / 2], &minHeap[i]);
+        i = (i - 1) / 2;
+    }
+}
+
+void popMinHeap() {
+    minHeap[0] = minHeap[--minHeapSize];
+    int i = 0;
+    while (2 * i + 1 < minHeapSize) {
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
+        int smallest = left;
+        if (right < minHeapSize && minHeap[right] < minHeap[left]) smallest = right;
+        if (minHeap[i] <= minHeap[smallest]) break;
+        swap(&minHeap[i], &minHeap[smallest]);
+        i = smallest;
+    }
+}
+
+void pruneHeaps(HashEntry* table) {
+    while (maxHeapSize > 0 && hashGetCount(table, maxHeap[0]) > 0) {
+        hashDecrement(table, maxHeap[0]);
+        popMaxHeap();
+    }
+    while (minHeapSize > 0 && hashGetCount(table, minHeap[0]) > 0) {
+        hashDecrement(table, minHeap[0]);
+        popMinHeap();
+    }
+}
+
+double* medianSlidingWindow(int* nums, int numsSize, int k, int* returnSize) {
+    *returnSize = numsSize - k + 1;
+    double* result = (double*)malloc((*returnSize) * sizeof(double));
+    
+    maxHeap = (int*)malloc(numsSize * sizeof(int));
+    minHeap = (int*)malloc(numsSize * sizeof(int));
+    maxHeapSize = 0;
+    minHeapSize = 0;
+    
+    HashEntry* table = (HashEntry*)calloc(HASH_SIZE, sizeof(HashEntry));
+    
+    int balance = 0; 
+    for (int i = 0; i < k; i++) {
+        pushMaxHeap(nums[i]);
+    }
+    for (int i = 0; i < k / 2; i++) {
+        pushMinHeap(maxHeap[0]);
+        popMaxHeap();
+    }
+    
+    result[0] = (k % 2 == 1) ? (double)maxHeap[0] : ((double)maxHeap[0] + (double)minHeap[0]) / 2.0;
+
+    int rIdx = 1;
+    for (int i = k; i < numsSize; i++) {
+        int outNum = nums[i - k];
+        int inNum = nums[i];
+        
+        balance = 0;
+        
+        hashInsert(table, outNum);
+        if (outNum <= maxHeap[0]) balance--;
+        else balance++;
+        
+        pruneHeaps(table);
+        if (maxHeapSize > 0 && inNum <= maxHeap[0]) {
+            pushMaxHeap(inNum);
+            balance++;
+        } else {
+            pushMinHeap(inNum);
+            balance--;
+        }
+        
+        if (balance < 0) {
+            pushMaxHeap(minHeap[0]);
+            popMinHeap();
+        } else if (balance > 0) {
+            pushMinHeap(maxHeap[0]);
+            popMaxHeap();
+        }
+        
+        pruneHeaps(table);
+        
+        result[rIdx++] = (k % 2 == 1) ? (double)maxHeap[0] : ((double)maxHeap[0] + (double)minHeap[0]) / 2.0;
+    }
+    
+    free(maxHeap);
+    free(minHeap);
+    free(table);
+    
+    return result;
+}
