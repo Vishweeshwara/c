@@ -1,0 +1,48 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+char* convert(char* s, int numRows) {
+    int len = strlen(s);
+    if (numRows <= 1 || len <= numRows) {
+        return s;
+    }
+
+    char** rows = (char**)malloc(numRows * sizeof(char*));
+    int* rowSizes = (int*)calloc(numRows, sizeof(int));
+    for (int i = 0; i < numRows; i++) {
+        rows[i] = (char*)malloc((len + 1) * sizeof(char));
+    }
+
+    int curRow = 0;
+    int goingDown = 0; 
+
+    for (int i = 0; i < len; i++) {
+        int pos = rowSizes[curRow];
+        rows[curRow][pos] = s[i];
+        rowSizes[curRow]++;
+
+        if (curRow == 0 || curRow == numRows - 1) {
+            goingDown = !goingDown;
+        }
+
+        curRow += goingDown ? 1 : -1;
+    }
+
+    char* result = (char*)malloc((len + 1) * sizeof(char));
+    int resultIdx = 0;
+    for (int i = 0; i < numRows; i++) {
+        int size = rowSizes[i];
+        rows[i][size] = '\0'; 
+        strcpy(result + resultIdx, rows[i]);
+        resultIdx += size;
+        
+        free(rows[i]);
+    }
+    result[resultIdx] = '\0'; 
+
+    free(rows);
+    free(rowSizes);
+
+    return result;
+}
