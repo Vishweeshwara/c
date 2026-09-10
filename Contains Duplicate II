@@ -1,0 +1,50 @@
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    int key;
+    int index;
+    bool is_occupied;
+} HashEntry;
+
+#define HASH_SIZE 200003
+
+int getHash(int key) {
+    int hash = key % HASH_SIZE;
+    if (hash < 0) {
+        hash += HASH_SIZE;
+    }
+    return hash;
+}
+
+bool containsNearbyDuplicate(int* nums, int numsSize, int k) {
+    HashEntry* hashTable = (HashEntry*)calloc(HASH_SIZE, sizeof(HashEntry));
+    if (!hashTable) return false;
+
+    for (int i = 0; i < numsSize; i++) {
+        int key = nums[i];
+        int hashIndex = getHash(key);
+        
+        while (hashTable[hashIndex].is_occupied) {
+            if (hashTable[hashIndex].key == key) {
+                if (i - hashTable[hashIndex].index <= k) {
+                    free(hashTable);
+                    return true;
+                }
+                hashTable[hashIndex].index = i;
+                break;
+            }
+            hashIndex = (hashIndex + 1) % HASH_SIZE;
+        }
+        
+        if (!hashTable[hashIndex].is_occupied) {
+            hashTable[hashIndex].key = key;
+            hashTable[hashIndex].index = i;
+            hashTable[hashIndex].is_occupied = true;
+        }
+    }
+    
+    free(hashTable);
+    return false;
+}
