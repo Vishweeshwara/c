@@ -1,0 +1,128 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define HASH_SIZE 20011
+
+typedef struct HashNode {
+    int key;
+    int val;
+    struct HashNode* next;
+} HashNode;
+
+typedef struct {
+    HashNode* buckets[HASH_SIZE];
+} HashMap;
+
+
+typedef struct {
+    int* data;
+    int top;
+    int capacity;
+} Stack;
+
+typedef struct {
+    HashMap freq_map;
+    Stack* group;
+    int group_capacity;
+    int maxfreq;
+} FreqStack;
+
+int hash(int key) {
+    return (key % HASH_SIZE + HASH_SIZE) % HASH_SIZE;
+}
+
+void hash_set(HashMap* map, int key, int val) {
+    int h = hash(key);
+    HashNode* curr = map->buckets[h];
+    while (curr) {
+        if (curr->key == key) {
+            curr->val = val;
+            return;
+        }
+        curr = curr->next;
+    }
+    HashNode* node = (HashNode*)malloc(sizeof(HashNode));
+    node->key = key;
+    node->val = val;
+    node->next = map->buckets[h];
+    map->buckets[h] = node;
+}
+
+int hash_get(HashMap* map, int key) {
+    int h = hash(key);
+    HashNode* curr = map->buckets[h];
+    while (curr) {
+        if (curr->key == key) return curr->val;
+        curr = curr->next;
+    }
+    return 0;
+}
+
+void stack_push(Stack* s, int val) {
+    if (s->top == s->capacity) {
+        s->capacity = s->capacity == 0 ? 4 : s->capacity * 2;
+        s->data = (int*)realloc(s->data, s->capacity * sizeof(int));
+    }
+    s->data[s->top++] = val;
+}
+
+int stack_pop(Stack* s) {
+    return s->data[--s->top];
+}
+
+FreqStack* freqStackCreate() {
+    FreqStack* obj = (FreqStack*)malloc(sizeof(FreqStack));
+    memset(obj->freq_map.buckets, 0, sizeof(obj->freq_map.buckets));
+    
+    obj->group_capacity = 20005; 
+    obj->group = (Stack*)calloc(obj->group_capacity, sizeof(Stack));
+    obj->maxfreq = 0;
+    return obj;
+}
+
+void freqStackPush(FreqStack* obj, int val) {
+    int f = hash_get(&obj->freq_map, val) + 1;
+    hash_set(&obj->freq_map, val, f);
+    
+    if (f > obj->maxfreq) {
+        obj->maxfreq = f;
+    }
+    
+    stack_push(&obj->group[f], val);
+}
+
+int freqStackPop(FreqStack* obj) {
+    int val = stack_pop(&obj->group[obj->maxfreq]);
+    
+    int f = hash_get(&obj->freq_map, val);
+    hash_set(&obj->freq_map, val, f - 1);
+    
+    if (obj->group[obj->maxfreq].top == 0) {
+        obj->maxfreq--;
+    }
+    
+    return val;
+}
+
+void freqStackFree(FreqStack* obj) {
+    if (!obj) return;
+    
+    for (int i = 0; i < HASH_SIZE; i++) {
+        HashNode* curr = obj->freq_map.buckets[i];
+        while (curr) {
+            HashNode* tmp = curr;
+            curr = curr->next;
+            free(tmp);
+        }
+    }
+    
+    for (int i = 0; i < obj->group_capacity; i++) {
+        if (obj->group[i].data) {
+            free(obj->group[i].data);
+        }
+    }
+    
+    free(obj->group);
+    free(obj);
+}
