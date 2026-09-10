@@ -1,0 +1,54 @@
+#include <stdlib.h>
+
+// Cache size large enough to hold intermediate Collatz values
+#define CACHE_SIZE 300000
+int memo[CACHE_SIZE] = {0};
+
+typedef struct {
+    int val;
+    int power;
+} Element;
+
+int getPower(int x) {
+    if (x == 1) return 0;
+    if (x < CACHE_SIZE && memo[x] != 0) return memo[x];
+
+    int steps;
+    if (x % 2 == 0) {
+        steps = 1 + getPower(x / 2);
+    } else {
+        steps = 1 + getPower(3 * x + 1);
+    }
+
+    if (x < CACHE_SIZE) {
+        memo[x] = steps;
+    }
+    return steps;
+}
+
+int compare(const void* a, const void* b) {
+    Element* e1 = (Element*)a;
+    Element* e2 = (Element*)b;
+    
+    if (e1->power != e2->power) {
+        return e1->power - e2->power;
+    }
+    return e1->val - e2->val;
+}
+
+int getKth(int lo, int hi, int k) {
+    int size = hi - lo + 1;
+    Element* arr = (Element*)malloc(size * sizeof(Element));
+
+    for (int i = 0; i < size; i++) {
+        int currentNum = lo + i;
+        arr[i].val = currentNum;
+        arr[i].power = getPower(currentNum);
+    }
+
+    qsort(arr, size, sizeof(Element), compare);
+
+    int result = arr[k - 1].val;
+    free(arr);
+    return result;
+}
